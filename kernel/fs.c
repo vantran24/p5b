@@ -324,15 +324,15 @@ static uint
 bmap(struct inode *ip, uint bn)//bn: block number
 {
 	uint addr, *a;
-	uint adrbitmask = 0x00ffffff;
+	//uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
 	if(bn < NDIRECT){//means bn is valid for direct ptrs
-		if (ip->type == T_CHECKED){
-			if ((addr = (adrbitmask & ip->addrs[bn])) == 0){
-				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
-			}
-		}
+//		if (ip->type == T_CHECKED){
+//			if ((addr = (adrbitmask & ip->addrs[bn])) == 0){
+//				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
+//			}
+//		}
 		if((addr = ip->addrs[bn]) == 0)//see if it is allocated yet
 			//***change what gets put into ip->addrs
 			//only when it is a T_Checked file
@@ -342,17 +342,17 @@ bmap(struct inode *ip, uint bn)//bn: block number
 	bn -= NDIRECT;
 	//doing indirect blocks
 	if(bn < NINDIRECT){
-		if (ip->type == T_CHECKED){
-			if ((addr = (adrbitmask & ip->addrs[NDIRECT])) == 0){
-				ip->addrs[NDIRECT] = addr = (adrbitmask & balloc(ip->dev));
-			}
-			bp = bread(ip->dev, addr);
-			a = (uint*)bp->data;
-			if((addr = (adrbitmask & a[bn])) == 0){
-				a[bn] = addr = (adrbitmask & balloc(ip->dev));
-				bwrite(bp);
-			}
-		}
+//		if (ip->type == T_CHECKED){
+//			if ((addr = (adrbitmask & ip->addrs[NDIRECT])) == 0){
+//				ip->addrs[NDIRECT] = addr = (adrbitmask & balloc(ip->dev));
+//			}
+//			bp = bread(ip->dev, addr);
+//			a = (uint*)bp->data;
+//			if((addr = (adrbitmask & a[bn])) == 0){
+//				a[bn] = addr = (adrbitmask & balloc(ip->dev));
+//				bwrite(bp);
+//			}
+//		}
 		// Load indirect block, allocating if necessary.
 		if((addr = ip->addrs[NDIRECT]) == 0)//see if one is allocated for the larger
 			//file
@@ -440,6 +440,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 		bp = bread(ip->dev, bmap(ip, off/BSIZE));
 		m = min(n - tot, BSIZE - off%BSIZE);
 		memmove(dst, bp->data + off%BSIZE, m);
+
 		brelse(bp);
 	}
 	return n;
