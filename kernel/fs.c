@@ -469,7 +469,7 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
-	uint csbitmask = 0xff000000;
+	//uint csbitmask = 0xff000000;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
