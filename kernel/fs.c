@@ -421,7 +421,7 @@ int
 readi(struct inode *ip, char *dst, uint off, uint n)
 {
 	uint tot, m;
-	uint csbitmask = 0xff000000;
+	//uint csbitmask = 0xff000000;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){//device
@@ -436,9 +436,8 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 		n = ip->size - off;
 
 	for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
-		uint addr = bmap(ip, off/BSIZE);
-		//cprintf("read: %d\n", (int) addr);
-		bp = bread(ip->dev, addr);
+
+		bp = bread(ip->dev, bmap(ip, off/BSIZE));
 		m = min(n - tot, BSIZE - off%BSIZE);
 		memmove(dst, bp->data + off%BSIZE, m);
 		brelse(bp);
@@ -451,8 +450,8 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
-	uint csbitmask = 0xff000000;
-	uchar checksum;
+	//uint csbitmask = 0xff000000;
+	//uchar checksum;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -469,9 +468,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
 
-		uint addr = bmap(ip, off/BSIZE);
-		//cprintf("write: %d\n", (int) addr);
-		bp = bread(ip->dev, addr);//-> look at bmap
+		bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
 		m = min(n - tot, BSIZE - off%BSIZE);
 		memmove(bp->data + off%BSIZE, src, m);
 		bwrite(bp);
