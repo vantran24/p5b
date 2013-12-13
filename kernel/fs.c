@@ -324,15 +324,15 @@ static uint
 bmap(struct inode *ip, uint bn)//bn: block number
 {
 	uint addr, *a;
-	//uint adrbitmask = 0x00ffffff;
+	uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
 	if(bn < NDIRECT){//means bn is valid for direct ptrs
-//		if (ip->type == T_CHECKED){
-//			if ((addr = (adrbitmask & ip->addrs[bn])) == 0){
-//				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
-//			}
-//		}
+		if (ip->type == T_CHECKED){
+			if ((addr = (adrbitmask & ip->addrs[bn])) == 0){
+				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
+			}
+		}
 		if((addr = ip->addrs[bn]) == 0)//see if it is allocated yet
 			//***change what gets put into ip->addrs
 			//only when it is a T_Checked file
@@ -342,17 +342,17 @@ bmap(struct inode *ip, uint bn)//bn: block number
 	bn -= NDIRECT;
 	//doing indirect blocks
 	if(bn < NINDIRECT){
-//		if (ip->type == T_CHECKED){
-//			if ((addr = (adrbitmask & ip->addrs[NDIRECT])) == 0){
-//				ip->addrs[NDIRECT] = addr = (adrbitmask & balloc(ip->dev));
-//			}
-//			bp = bread(ip->dev, addr);
-//			a = (uint*)bp->data;
-//			if((addr = (adrbitmask & a[bn])) == 0){
-//				a[bn] = addr = (adrbitmask & balloc(ip->dev));
-//				bwrite(bp);
-//			}
-//		}
+		if (ip->type == T_CHECKED){
+			if ((addr = (adrbitmask & ip->addrs[NDIRECT])) == 0){
+				ip->addrs[NDIRECT] = addr = (adrbitmask & balloc(ip->dev));
+			}
+			bp = bread(ip->dev, addr);
+			a = (uint*)bp->data;
+			if((addr = (adrbitmask & a[bn])) == 0){
+				a[bn] = addr = (adrbitmask & balloc(ip->dev));
+				bwrite(bp);
+			}
+		}
 		// Load indirect block, allocating if necessary.
 		if((addr = ip->addrs[NDIRECT]) == 0)//see if one is allocated for the larger
 			//file
@@ -421,7 +421,7 @@ int
 readi(struct inode *ip, char *dst, uint off, uint n)
 {
 	uint tot, m;
-	//uint csbitmask = 0xff000000;
+	uint csbitmask = 0xff000000;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){//device
@@ -436,12 +436,30 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 		n = ip->size - off;
 
 	for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
+		if (ip->type == T_CHECKED){
+			bp = bread(ip->dev, bmap(ip, off/BSIZE));
+			m = min(n - tot, BSIZE - off%BSIZE);
+			memmove(dst, bp->data + off%BSIZE, m);
+			uchar checksum = bp->data[0];
+			//make the checksum the first byte of the blck then XOR
+			int i;
+			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
+				checksum^=bp->data[i];//XOR operation
+			}
+			brelse(bp);
+			//do the check after the release
+			if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
+				//check if its the same
+				return -1;
+			}
+		}
+		else{
+			bp = bread(ip->dev, bmap(ip, off/BSIZE));
+			m = min(n - tot, BSIZE - off%BSIZE);
+			memmove(dst, bp->data + off%BSIZE, m);
 
-		bp = bread(ip->dev, bmap(ip, off/BSIZE));
-		m = min(n - tot, BSIZE - off%BSIZE);
-		memmove(dst, bp->data + off%BSIZE, m);
-
-		brelse(bp);
+			brelse(bp);
+		}
 	}
 	return n;
 }
@@ -451,8 +469,7 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
-	//uint csbitmask = 0xff000000;
-	//uchar checksum;
+	uint csbitmask = 0xff000000;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -468,12 +485,29 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
+		if (ip->type == T_CHECKED){
 
-		bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
-		m = min(n - tot, BSIZE - off%BSIZE);
-		memmove(bp->data + off%BSIZE, src, m);
-		bwrite(bp);
-		brelse(bp);
+			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+			m = min(n - tot, BSIZE - off%BSIZE);
+			memmove(bp->data + off%BSIZE, src, m);
+			bwrite(bp);
+			uchar checksum = bp->data[0];
+			//make the checksum the first byte of the blck then XOR
+			int i;
+			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
+				checksum^=bp->data[i];//XOR operation
+			}
+			brelse(bp);
+			//do the check after the release
+		}
+
+		else{
+			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+			m = min(n - tot, BSIZE - off%BSIZE);
+			memmove(bp->data + off%BSIZE, src, m);
+			bwrite(bp);
+			brelse(bp);
+		}
 	}
 
 	if(n > 0 && off > ip->size){
