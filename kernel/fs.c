@@ -324,18 +324,35 @@ static uint
 bmap(struct inode *ip, uint bn)//bn: block number
 {
 	uint addr, *a;
+	uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
-	if(bn < NDIRECT){
+	if(bn < NDIRECT){//means bn is valid for direct ptrs
+		if (ip->type == T_CHECKED){
+			if ((addr = (adrbitmask & ip->addrs[bn])) == 0){
+				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
+			}
+		}
 		if((addr = ip->addrs[bn]) == 0)//see if it is allocated yet
 			//***change what gets put into ip->addrs
 			//only when it is a T_Checked file
 			ip->addrs[bn] = addr = balloc(ip->dev);
-		return addr;
+		return addr;//only need this to return the last 3bytes
 	}
 	bn -= NDIRECT;
 	//doing indirect blocks
 	if(bn < NINDIRECT){
+		if (ip->type == T_CHECKED){
+			if ((addr = (adrbitmask & ip->addrs[NDIRECT])) == 0){
+				ip->addrs[NDIRECT] = addr = (adrbitmask & balloc(ip->dev));
+			}
+			bp = bread(ip->dev, addr);
+			a = (uint*)bp->data;
+			if((addr = (adrbitmask & a[bn])) == 0){
+				a[bn] = addr = (adrbitmask & balloc(ip->dev));
+				bwrite(bp);
+			}
+		}
 		// Load indirect block, allocating if necessary.
 		if((addr = ip->addrs[NDIRECT]) == 0)//see if one is allocated for the larger
 			//file
@@ -404,22 +421,23 @@ int
 readi(struct inode *ip, char *dst, uint off, uint n)
 {
 	uint tot, m;
+	uint csbitmask = 0xff000000;
 	struct buf *bp;
 
-	if(ip->type == T_DEV){
+	if(ip->type == T_DEV){//device
 		if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].read)
 			return -1;
 		return devsw[ip->major].read(ip, dst, n);
 	}
 
-	if(off > ip->size || off + n < off)
+	if(off > ip->size || off + n < off)//checking the range
 		return -1;
 	if(off + n > ip->size)
 		n = ip->size - off;
 
 	for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
 		uint addr = bmap(ip, off/BSIZE);
-		cprintf("read: %d\n", (int) addr);
+		//cprintf("read: %d\n", (int) addr);
 		bp = bread(ip->dev, addr);
 		m = min(n - tot, BSIZE - off%BSIZE);
 		memmove(dst, bp->data + off%BSIZE, m);
@@ -433,6 +451,8 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
+	uint csbitmask = 0xff000000;
+	uchar checksum;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -448,9 +468,10 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
+
 		uint addr = bmap(ip, off/BSIZE);
-		cprintf("write: %d\n", (int) addr);
-		bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+		//cprintf("write: %d\n", (int) addr);
+		bp = bread(ip->dev, addr);//-> look at bmap
 		m = min(n - tot, BSIZE - off%BSIZE);
 		memmove(bp->data + off%BSIZE, src, m);
 		bwrite(bp);
