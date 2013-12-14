@@ -460,7 +460,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				bn -= NDIRECT;
 				//brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				uint* dholder = bp->data[bn];
+				uint dholder = (uint) bp->data[bn];
 				//then can release if a -1 is returned
 				brelse(bp);
 				if (checksum != ((csbitmask & dholder)>>24)){
