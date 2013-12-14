@@ -76,14 +76,27 @@ fileclose(struct file *f)
 int
 filestat(struct file *f, struct stat *st)
 {
+	uint adrbitmask = 0x00ffffff;
 	if(f->type == FD_INODE){
 		ilock(f->ip);
 		stati(f->ip, st);
-		uchar checksum = (0xff000000&(f->ip->addrs[0]) >> 24);
+		uchar checksum = (adrbitmask&(f->ip->addrs[0]) >> 24);
 		if (f->ip->type == T_CHECKED){
 			int i;
 			for (i = 1; i < NDIRECT; i++){
-				checksum^=((0xff000000&(f->ip->addrs[i])) >> 24);
+				//direct checksums
+				checksum^=((adrbitmask&(f->ip->addrs[i])) >> 24);
+			}
+			//need to make a buffer so we can do a bread
+			struct buf* buff;
+			buff = bread(f->ip->dev, (adrbitmask & f->ip->addrs[NDIRECT]));
+			//^like a indirect case
+			//create reference for data access to XOR all checksums
+			uint * dref = (uint*)buff->data;
+			for (i = 0; i < BSIZE/sizeof(uint); i++){
+							//^from book
+				//indirect checksums
+				checksum^=((adrbitmask&dref[i]) >> 24);
 			}
 			st->checksum = checksum;
 		}

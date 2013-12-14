@@ -549,7 +549,6 @@ writei(struct inode *ip, char *src, uint off, uint n)
 		ip->size = off;
 		iupdate(ip);
 	}
-	//iupdate(ip);
 	return n;
 }
 
