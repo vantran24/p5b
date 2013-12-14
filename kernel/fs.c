@@ -426,9 +426,8 @@ int
 readi(struct inode *ip, char *dst, uint off, uint n)
 {
 	uint tot, m;
-	uint csbitmask = 0xff000000;
-	uint adrbitmask = 0x00ffffff;
-	//uint bn;
+//	uint csbitmask = 0xff000000;
+//	uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){//device
@@ -441,49 +440,48 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 		return -1;
 	if(off + n > ip->size)
 		n = ip->size - off;
-	//bn = off/BSIZE;
+
 	for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
-		if (ip->type == T_CHECKED){
+//		if (ip->type == T_CHECKED){
+//			bp = bread(ip->dev, bmap(ip, off/BSIZE));
+//			m = min(n - tot, BSIZE - off%BSIZE);
+//			memmove(dst, bp->data + off%BSIZE, m);
+//			uchar checksum = bp->data[0];
+//			//make the checksum the first byte of the blck then XOR
+//			//the whole block
+//			int i;
+//			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
+//				checksum^=bp->data[i];//XOR operation
+//			}
+//			brelse(bp);
+//			if ((off/BSIZE) < NDIRECT){//within direct pointers
+//				//do the check after the release
+//				if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
+//					//check if its the same if not bad
+//					return -1;
+//				}
+//			}
+//			else{//indirect case like bmap
+//				uint bn = off/BSIZE;
+//				bn -= NDIRECT;
+//				//brelse(bp);
+//				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
+//				uint dholder = (uint) bp->data[bn];
+//				//then can release if a -1 is returned
+//				brelse(bp);
+//				if (checksum != ((csbitmask & dholder)>>24)){
+//					//check if its the same if not bad
+//					return -1;
+//				}
+//
+//			}
+//		}
+		//else{
 			bp = bread(ip->dev, bmap(ip, off/BSIZE));
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(dst, bp->data + off%BSIZE, m);
-			uchar checksum = bp->data[0];
-			//make the checksum the first byte of the blck then XOR
-			//the whole block
-			int i;
-			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
-				checksum^=bp->data[i];//XOR operation
-			}
 			brelse(bp);
-			if ((off/BSIZE) < NDIRECT){//within direct pointers
-				//do the check after the release
-				if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
-					//check if its the same if not bad
-					return -1;
-				}
-			}
-			else{//indirect case like bmap
-				uint bn = off/BSIZE;
-				bn -= NDIRECT;
-				//brelse(bp);
-				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				uint dholder = (uint) bp->data[bn];
-				//then can release if a -1 is returned
-				brelse(bp);
-				if (checksum != ((csbitmask & dholder)>>24)){
-					//check if its the same if not bad
-					return -1;
-				}
-
-			}
-		}
-		else{
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));
-			m = min(n - tot, BSIZE - off%BSIZE);
-			memmove(dst, bp->data + off%BSIZE, m);
-
-			brelse(bp);
-		}
+		//}
 	}
 	return n;
 }
@@ -493,8 +491,7 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
-	uint adrbitmask = 0x00ffffff;
-	//uint bn;
+	//uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -510,42 +507,40 @@ writei(struct inode *ip, char *src, uint off, uint n)
 	//bn = off/BSIZE;
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
-		if (ip->type == T_CHECKED){
-
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
-			m = min(n - tot, BSIZE - off%BSIZE);
-			memmove(bp->data + off%BSIZE, src, m);
-			bwrite(bp);
-			uchar checksum = bp->data[0];
-			//make the checksum the first byte of the blck then XOR
-			int i;
-			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
-				checksum^=bp->data[i];//XOR operation
-			}
-			if ((off/BSIZE) < NDIRECT){
-				//setting the new formatted addr
-				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
-						ip->addrs[off/BSIZE]) ;
-				brelse(bp);
-			}
-			else{//indirect like in bmap
-				uint bn = off/BSIZE;
-				bn -= NDIRECT;
-				brelse(bp);
-				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				bwrite(bp);
-				brelse(bp);
-			}
-			//do the check after the release
-		}
-
-		else{
+//		if (ip->type == T_CHECKED){
+//			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+//			m = min(n - tot, BSIZE - off%BSIZE);
+//			memmove(bp->data + off%BSIZE, src, m);
+//			bwrite(bp);
+//			uchar checksum = bp->data[0];
+//			//make the checksum the first byte of the blck then XOR
+//			int i;
+//			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
+//				checksum^=bp->data[i];//XOR operation
+//			}
+//			if ((off/BSIZE) < NDIRECT){
+//				//setting the new formatted addr
+//				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
+//						ip->addrs[off/BSIZE]) ;
+//				brelse(bp);
+//			}
+//			else{//indirect like in bmap
+//				uint bn = off/BSIZE;
+//				bn -= NDIRECT;
+//				brelse(bp);
+//				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
+//				bwrite(bp);
+//				brelse(bp);
+//			}
+//			//do the check after the release
+//		}
+		//else{
 			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(bp->data + off%BSIZE, src, m);
 			bwrite(bp);
 			brelse(bp);
-		}
+		//}
 	}
 
 	if(n > 0 && off > ip->size){
