@@ -99,7 +99,8 @@ filestat(struct file *f, struct stat *st)
 				//indirect checksums
 				checksum^=((adrbitmask&dref[i]) >> 24);
 			}
-			st->checksum = checksum;
+			uchar temp = checksum;
+			st->checksum = temp;
 		}
 		iunlock(f->ip);
 
