@@ -510,7 +510,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
 			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(bp->data + off%BSIZE, src, m);
-			bwrite(bp);
+			//bwrite(bp);
 			uchar checksum = bp->data[0];
 			//make the checksum the first byte of the blck then XOR
 			int i;
@@ -521,6 +521,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
 				//setting the new formatted addr
 				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
 						ip->addrs[off/BSIZE]) ;
+				bwrite(bp);
 				brelse(bp);
 			}
 			else{//indirect like in bmap
