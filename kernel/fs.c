@@ -538,9 +538,9 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	if(n > 0 && off > ip->size){
 		ip->size = off;
-		iupdate(ip);
+		//iupdate(ip);
 	}
-	//iupdate(ip);
+	iupdate(ip);
 	return n;
 }
 
