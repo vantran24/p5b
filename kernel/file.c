@@ -78,15 +78,16 @@ int
 filestat(struct file *f, struct stat *st)
 {
 	uint adrbitmask = 0x00ffffff;
+	uint csbitmask = 0xff000000;
 	if(f->type == FD_INODE){
 		ilock(f->ip);
 		stati(f->ip, st);
-		uchar checksum = (adrbitmask&(f->ip->addrs[0]) >> 24);
+		uchar checksum = (csbitmask&(f->ip->addrs[0]) >> 24);
 		if (f->ip->type == T_CHECKED){
 			int i;
 			for (i = 1; i < NDIRECT; i++){
 				//direct checksums
-				checksum^=((adrbitmask&(f->ip->addrs[i])) >> 24);
+				checksum^=((csbitmask&(f->ip->addrs[i])) >> 24);
 			}
 			//need to make a buffer so we can do a bread
 			struct buf* buff;
@@ -97,7 +98,7 @@ filestat(struct file *f, struct stat *st)
 			for (i = 0; i < BSIZE/sizeof(uint); i++){
 							//^from book
 				//indirect checksums
-				checksum^=((adrbitmask&dref[i]) >> 24);
+				checksum^=((csbitmask&dref[i]) >> 24);
 			}
 			uchar temp = checksum;
 			st->checksum = temp;
