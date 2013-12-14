@@ -80,9 +80,10 @@ filestat(struct file *f, struct stat *st)
 	uint adrbitmask = 0x00ffffff;
 	uint csbitmask = 0xff000000;
 	if(f->type == FD_INODE){
+		uchar checksum = (csbitmask&(f->ip->addrs[0]) >> 24);
 		ilock(f->ip);
 		stati(f->ip, st);
-		uchar checksum = (csbitmask&(f->ip->addrs[0]) >> 24);
+
 		if (f->ip->type == T_CHECKED){
 			int i;
 			for (i = 1; i < NDIRECT; i++){
