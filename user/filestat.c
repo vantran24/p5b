@@ -21,14 +21,14 @@ main(int argc, char *argv[])
  char * pathname;
  pathname = argv[1];
  //call stat() in user.h
- if (stat(pathname, st) == -1){
+ if (stat(pathname, &st) == -1){
 	 printf(1, "something wrong in stat\n");
 	 exit();
  }
  printf(1, "File: %s\n", pathname);
- printf(1, "Size: %d\n", st->size);
- printf(1, "Type: %d\n", st->type);
- printf(1, "Checksum: %s\n", st->checksum);
+ printf(1, "Size: %d\n", st.size);
+ printf(1, "Type: %d\n", st.type);
+ printf(1, "Checksum: %s\n", st.checksum);
 
  //print everything
 
