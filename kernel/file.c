@@ -98,7 +98,7 @@ filestat(struct file *f, struct stat *st)
 			for (i = 0; i < BSIZE/sizeof(uint); i++){
 							//indirect blocks
 				//indirect checksums
-				checksum^=((csbitmask&dref[i]) >> 24);
+				checksum^=((csbitmask & dref[i]) >> 24);
 			}
 			st->checksum = checksum;
 		}
