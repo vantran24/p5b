@@ -443,6 +443,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 			memmove(dst, bp->data + off%BSIZE, m);
 			uchar checksum = bp->data[0];
 			//make the checksum the first byte of the blck then XOR
+			//the whole block
 			int i;
 			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
 				checksum^=bp->data[i];//XOR operation
@@ -459,11 +460,14 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				bn -= NDIRECT;
 				//brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				if (checksum != ((csbitmask & ip->addrs[bn])>>24)){
+				uint* dholder = bp->data[bn];
+				//then can release if a -1 is returned
+				brelse(bp);
+				if (checksum != ((csbitmask & dholder)>>24)){
 					//check if its the same if not bad
 					return -1;
 				}
-				brelse(bp);
+
 			}
 		}
 		else{
@@ -538,9 +542,9 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	if(n > 0 && off > ip->size){
 		ip->size = off;
-		//iupdate(ip);
+		iupdate(ip);
 	}
-	iupdate(ip);
+	//iupdate(ip);
 	return n;
 }
 
