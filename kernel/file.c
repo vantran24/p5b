@@ -80,10 +80,9 @@ filestat(struct file *f, struct stat *st)
 	uint adrbitmask = 0x00ffffff;
 	uint csbitmask = 0xff000000;
 	if(f->type == FD_INODE){
-		uchar checksum = (csbitmask&(f->ip->addrs[0]) >> 24);
 		ilock(f->ip);
 		stati(f->ip, st);
-
+		uchar checksum = (csbitmask&(f->ip->addrs[0]) >> 24);
 		if (f->ip->type == T_CHECKED){
 			int i;
 			for (i = 1; i < NDIRECT; i++){
@@ -97,7 +96,6 @@ filestat(struct file *f, struct stat *st)
 			//create reference for data access to XOR all checksums
 			uint* dref = (uint*)buff->data;
 			for (i = 0; i < NINDIRECT; i++){
-							//indirect blocks
 				//indirect checksums
 				checksum^=((csbitmask & dref[i]) >> 24);
 			}
