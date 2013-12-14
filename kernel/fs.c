@@ -332,11 +332,13 @@ bmap(struct inode *ip, uint bn)//bn: block number
 				ip->addrs[bn] = addr = (adrbitmask & balloc(ip->dev));
 			}
 		}
-		if((addr = ip->addrs[bn]) == 0)//see if it is allocated yet
-			//***change what gets put into ip->addrs
-			//only when it is a T_Checked file
-			ip->addrs[bn] = addr = balloc(ip->dev);
-		return addr;//only need this to return the last 3bytes
+		else{
+			if((addr = ip->addrs[bn]) == 0)//see if it is allocated yet
+				//***change what gets put into ip->addrs
+				//only when it is a T_Checked file
+				ip->addrs[bn] = addr = balloc(ip->dev);
+			return addr;//only need this to return the last 3bytes
+		}
 	}
 	bn -= NDIRECT;
 	//doing indirect blocks
@@ -352,17 +354,19 @@ bmap(struct inode *ip, uint bn)//bn: block number
 				bwrite(bp);
 			}
 		}
-		// Load indirect block, allocating if necessary.
-		if((addr = ip->addrs[NDIRECT]) == 0)//see if one is allocated for the larger
-			//file
-			//extra work done to read indir block then look at it to be able to
-			//return the right addr that you want to look at
-			ip->addrs[NDIRECT] = addr = balloc(ip->dev);
-		bp = bread(ip->dev, addr);
-		a = (uint*)bp->data;
-		if((addr = a[bn]) == 0){
-			a[bn] = addr = balloc(ip->dev);
-			bwrite(bp);
+		else{
+			// Load indirect block, allocating if necessary.
+			if((addr = ip->addrs[NDIRECT]) == 0)//see if one is allocated for the larger
+				//file
+				//extra work done to read indir block then look at it to be able to
+				//return the right addr that you want to look at
+				ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+			bp = bread(ip->dev, addr);
+			a = (uint*)bp->data;
+			if((addr = a[bn]) == 0){
+				a[bn] = addr = balloc(ip->dev);
+				bwrite(bp);
+			}
 		}
 		brelse(bp);
 		return addr;
@@ -523,8 +527,8 @@ writei(struct inode *ip, char *src, uint off, uint n)
 				brelse(bp);
 			}
 			else{//indirect like in bmap
-				//uint bn = off/BSIZE;
-				//bn -= NDIRECT;
+				uint bn = off/BSIZE;
+				bn -= NDIRECT;
 				brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
 				bwrite(bp);
@@ -544,9 +548,9 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	if(n > 0 && off > ip->size){
 		ip->size = off;
-		iupdate(ip);
+		//iupdate(ip);
 	}
-	//iupdate(ip);
+	iupdate(ip);
 	return n;
 }
 
