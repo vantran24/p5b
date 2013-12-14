@@ -457,10 +457,11 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				}
 			}
 			else{//indirect case like bmap
-				(off/BSIZE) -= NDIRECT;
+				uint bn = off/BSIZE;
+				bn -= NDIRECT;
 				//brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				uint dholder = (uint) bp->data[off/BSIZE];
+				uint dholder = (uint) bp->data[bn];
 				//then can release if a -1 is returned
 				brelse(bp);
 				if (checksum != ((csbitmask & dholder)>>24)){
@@ -522,7 +523,8 @@ writei(struct inode *ip, char *src, uint off, uint n)
 				brelse(bp);
 			}
 			else{//indirect like in bmap
-				(off/BSIZE) -= NDIRECT;
+				//uint bn = off/BSIZE;
+				//bn -= NDIRECT;
 				brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
 				bwrite(bp);
