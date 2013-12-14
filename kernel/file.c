@@ -95,7 +95,7 @@ filestat(struct file *f, struct stat *st)
 			//^like a indirect case from bmap
 			//create reference for data access to XOR all checksums
 			uint* dref = (uint*)buff->data;
-			for (i = 0; i < BSIZE/sizeof(uint); i++){
+			for (i = 0; i < NINDIRECT; i++){
 							//indirect blocks
 				//indirect checksums
 				checksum^=((csbitmask & dref[i]) >> 24);

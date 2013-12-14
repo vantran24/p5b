@@ -521,7 +521,6 @@ writei(struct inode *ip, char *src, uint off, uint n)
 				//setting the new formatted addr
 				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
 						ip->addrs[off/BSIZE]) ;
-				bwrite(bp);
 				brelse(bp);
 			}
 			else{//indirect like in bmap
