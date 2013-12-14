@@ -506,9 +506,8 @@ writei(struct inode *ip, char *src, uint off, uint n)
 	//bn = off/BSIZE;
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
-		uint bn = off/BSIZE;
 		if (ip->type == T_CHECKED){
-			bp = bread(ip->dev, bmap(ip, bn));//-> look at bmap
+			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(bp->data + off%BSIZE, src, m);
 			bwrite(bp);
@@ -518,15 +517,15 @@ writei(struct inode *ip, char *src, uint off, uint n)
 			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
 				checksum^=bp->data[i];//XOR operation
 			}
-			if (bn < NDIRECT){
+			if ((off/BSIZE) < NDIRECT){
 				//setting the new formatted addr
-				ip->addrs[bn] = (checksum << 24)|(adrbitmask &
-						ip->addrs[bn]) ;
-
+				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
+						ip->addrs[off/BSIZE]) ;
+				bwrite(bp);
 				brelse(bp);
 			}
 			else{//indirect like in bmap
-
+				uint bn = off/BSIZE;
 				bn -= NDIRECT;
 				brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
