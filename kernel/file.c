@@ -96,12 +96,11 @@ filestat(struct file *f, struct stat *st)
 			//create reference for data access to XOR all checksums
 			uint* dref = (uint*)buff->data;
 			for (i = 0; i < BSIZE/sizeof(uint); i++){
-							//^from book
+							//indirect blocks
 				//indirect checksums
 				checksum^=((csbitmask&dref[i]) >> 24);
 			}
-			uchar temp = checksum;
-			st->checksum = temp;
+			st->checksum = checksum;
 		}
 		iunlock(f->ip);
 
