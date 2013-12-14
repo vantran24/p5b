@@ -464,7 +464,6 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 			else{//indirect case like bmap
 				uint bn = off/BSIZE;
 				bn -= NDIRECT;
-				//brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
 				uint* dholder = (uint*) bp->data;
 				//then can release if a -1 is returned
@@ -548,9 +547,9 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	if(n > 0 && off > ip->size){
 		ip->size = off;
-		//iupdate(ip);
+		iupdate(ip);
 	}
-	iupdate(ip);
+	//iupdate(ip);
 	return n;
 }
 
