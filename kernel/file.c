@@ -92,7 +92,8 @@ filestat(struct file *f, struct stat *st)
 			buff = bread(f->ip->dev, (adrbitmask & f->ip->addrs[NDIRECT]));
 			//^like a indirect case from bmap
 			//create reference for data access to XOR all checksums
-			uint* dref = (uint*)buff->data;
+			uint* dref;
+			dref = (uint*)buff->data;
 			for (i = 0; i < BSIZE/sizeof(uint); i++){
 							//^from book
 				//indirect checksums
