@@ -337,8 +337,8 @@ bmap(struct inode *ip, uint bn)//bn: block number
 				//***change what gets put into ip->addrs
 				//only when it is a T_Checked file
 				ip->addrs[bn] = addr = balloc(ip->dev);
-			return addr;//only need this to return the last 3bytes
 		}
+		return addr;
 	}
 	bn -= NDIRECT;
 	//doing indirect blocks
