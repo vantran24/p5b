@@ -466,7 +466,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				bn -= NDIRECT;
 				//brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				uint dholder = (uint) bp->data;
+				uint dholder = (uint*) bp->data;
 				//then can release if a -1 is returned
 				brelse(bp);
 				if (checksum != ((csbitmask & dholder[bn])>>24)){
@@ -529,7 +529,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
 				bn -= NDIRECT;
 				brelse(bp);
 				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
-				uint* dholder = (uint) bp->data;
+				uint* dholder = (uint*) bp->data;
 				dholder[bn] = (checksum << 24)|(adrbitmask &
 						dholder[bn]);//indirectly writing to bp->data
 				bwrite(bp);
