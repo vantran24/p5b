@@ -447,10 +447,13 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				checksum^=bp->data[i];//XOR operation
 			}
 			brelse(bp);
-			//do the check after the release
-			if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
-				//check if its the same
-				return -1;
+			if ((off/BSIZE) < NDIRECT){//within direct pointers
+				//do the check after the release
+				if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
+					//check if its the same if not bad
+					return -1;
+				}
+
 			}
 		}
 		else{
@@ -469,7 +472,7 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
-	//uint csbitmask = 0xff000000;
+	uint adrbitmask = 0x00ffffff;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -497,7 +500,12 @@ writei(struct inode *ip, char *src, uint off, uint n)
 			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
 				checksum^=bp->data[i];//XOR operation
 			}
+			if ((off/BSIZE) < NDIRECT){
+				//setting the new formatted addr
+				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
+						ip->addrs[off/BSIZE]) ;
 			brelse(bp);
+			}
 			//do the check after the release
 		}
 
