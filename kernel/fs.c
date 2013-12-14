@@ -317,8 +317,7 @@ iunlockput(struct inode *ip)
 
 // Return the disk block address of the nth block in inode
 // (pointed to by) ip.
-// ^really does this^
-//this looks inside the inode
+// this looks inside the inode
 // If there is no such block, bmap allocates one.
 static uint
 bmap(struct inode *ip, uint bn)//bn: block number
@@ -422,6 +421,8 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 {
 	uint tot, m;
 	uint csbitmask = 0xff000000;
+	uint adrbitmask = 0x00ffffff;
+	uint bn;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){//device
@@ -434,10 +435,10 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 		return -1;
 	if(off + n > ip->size)
 		n = ip->size - off;
-
+	bn = off/BSIZE;
 	for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
 		if (ip->type == T_CHECKED){
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));
+			bp = bread(ip->dev, bmap(ip, bn));
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(dst, bp->data + off%BSIZE, m);
 			uchar checksum = bp->data[0];
@@ -447,17 +448,26 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 				checksum^=bp->data[i];//XOR operation
 			}
 			brelse(bp);
-			if ((off/BSIZE) < NDIRECT){//within direct pointers
+			if (bn < NDIRECT){//within direct pointers
 				//do the check after the release
-				if (checksum != ((csbitmask & ip->addrs[off/BSIZE])>>24)){
+				if (checksum != ((csbitmask & ip->addrs[bn])>>24)){
 					//check if its the same if not bad
 					return -1;
 				}
-
+			}
+			else{//indirect
+				bn -= NDIRECT;
+				//brelse(bp);
+				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
+				if (checksum != ((csbitmask & ip->addrs[bn])>>24)){
+					//check if its the same if not bad
+					return -1;
+				}
+				brelse(bp);
 			}
 		}
 		else{
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));
+			bp = bread(ip->dev, bmap(ip, bn));
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(dst, bp->data + off%BSIZE, m);
 
@@ -473,6 +483,7 @@ writei(struct inode *ip, char *src, uint off, uint n)
 {
 	uint tot, m;
 	uint adrbitmask = 0x00ffffff;
+	uint bn;
 	struct buf *bp;
 
 	if(ip->type == T_DEV){
@@ -485,12 +496,12 @@ writei(struct inode *ip, char *src, uint off, uint n)
 		return -1;
 	if(off + n > MAXFILE*BSIZE)
 		n = MAXFILE*BSIZE - off;
-
+	bn = off/BSIZE;
 	//this is where it is doing most of the work
 	for(tot=0; tot<n; tot+=m, off+=m, src+=m){
 		if (ip->type == T_CHECKED){
 
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+			bp = bread(ip->dev, bmap(ip, bn));//-> look at bmap
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(bp->data + off%BSIZE, src, m);
 			bwrite(bp);
@@ -500,17 +511,24 @@ writei(struct inode *ip, char *src, uint off, uint n)
 			for (i = 1; i < BSIZE; i++){//go thr all bytes of block
 				checksum^=bp->data[i];//XOR operation
 			}
-			if ((off/BSIZE) < NDIRECT){
+			if (bn < NDIRECT){
 				//setting the new formatted addr
-				ip->addrs[off/BSIZE] = (checksum << 24)|(adrbitmask &
-						ip->addrs[off/BSIZE]) ;
-			brelse(bp);
+				ip->addrs[bn] = (checksum << 24)|(adrbitmask &
+						ip->addrs[bn]) ;
+				brelse(bp);
+			}
+			else{//indirect like in bmap
+				bn -= NDIRECT;
+				brelse(bp);
+				bp = bread(ip->dev, (adrbitmask & ip->addrs[NDIRECT]));
+				bwrite(bp);
+				brelse(bp);
 			}
 			//do the check after the release
 		}
 
 		else{
-			bp = bread(ip->dev, bmap(ip, off/BSIZE));//-> look at bmap
+			bp = bread(ip->dev, bmap(ip, bn));//-> look at bmap
 			m = min(n - tot, BSIZE - off%BSIZE);
 			memmove(bp->data + off%BSIZE, src, m);
 			bwrite(bp);
@@ -520,9 +538,9 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
 	if(n > 0 && off > ip->size){
 		ip->size = off;
-		//iupdate(ip);
+		iupdate(ip);
 	}
-	iupdate(ip);
+	//iupdate(ip);
 	return n;
 }
 
